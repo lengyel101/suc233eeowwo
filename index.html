@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Page</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        /* Main container: centers content both vertically and horizontally */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f5f6fa;
+        }
+
+        /* Outer container for content alignment */
+        #container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        /* Popup styling */
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            text-align: center;
+        }
+        #popup p {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        #close-button {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Blurring effect on background when popup is active */
+        .blur {
+            filter: blur(3px);
+        }
+
+        /* Headline style */
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Styling the continue button */
+        #continue-button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+            width: 100%;
+            max-width: 180px;
+        }
+        #continue-button:disabled {
+            background-color: #c1c1c1;
+            cursor: not-allowed;
+        }
+        #continue-button:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        /* Cloudflare Turnstile widget spacing */
+        .button-container {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+        }
+        .cf-turnstile {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>Verification Required</h1>
+        <p>Please verify you are human to continue to the next page.</p>
+        
+        <!-- Button and Turnstile widget in a flex container -->
+        <div class="button-container">
+            <button id="continue-button" disabled>Continue</button>
+            <div class="cf-turnstile" 
+                 data-sitekey="0x4AAAAAAAzUs6cK92Zqq_WR" 
+                 data-callback="enableButton"></div>
+        </div>
+    </div>
+
+    <div id="popup">
+        <p id="popup-message"></p>
+        <button id="close-button">Close</button>
+    </div>
+
+    <script>
+        // Enable button when Turnstile challenge is successfully completed
+        function enableButton() {
+            document.getElementById("continue-button").disabled = false;
+        }
+
+        window.onload = function() {
+            let hasMovedMouse = false;
+            let movements = 0;
+
+            window.addEventListener('mousemove', function() {
+                hasMovedMouse = true;
+                movements++;
+            });
+
+            window.addEventListener('click', function() {
+                movements++;
+            });
+
+            const button = document.getElementById('continue-button');
+            const popup = document.getElementById('popup');
+            const popupMessage = document.getElementById('popup-message');
+            const container = document.getElementById('container');
+
+            button.onclick = () => {
+                if (movements < 5) {
+                    showPopup("Please interact with the page before continuing.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('mouse_movement', hasMovedMouse && movements >= 5 ? 'human' : 'bot');
+                formData.append('hidden_address_field', ''); // Honeypot field
+
+                fetch('https://desacara-6pvx8o68.b4a.run', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        window.location.href = "https://sertechprov.github.io/nod.js-readme/";
+                    } else {
+                        showPopup(data.reason);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showPopup("An error occurred, please try again later.");
+                });
+            };
+
+            function showPopup(message) {
+                popupMessage.textContent = message;
+                popup.style.display = 'block';
+                container.classList.add('blur');
+            }
+
+            document.getElementById('close-button').onclick = () => {
+                popup.style.display = 'none';
+                container.classList.remove('blur');
+            };
+        };
+    </script>
+
+</body>
+</html>

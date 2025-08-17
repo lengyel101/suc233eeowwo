@@ -1,4 +1,4 @@
-// main.ts - Deno Deploy Static HTML Server
+// main.ts - Static HTML Server for Root Directory
 import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
 
 const PORT = 8080;
@@ -11,17 +11,14 @@ const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
 };
 
-// Get the absolute path to index.html
-const __dirname = new URL(".", import.meta.url).pathname;
-const htmlPath = `${__dirname}public/index.html`;
-
 // Read HTML content at startup
 let htmlContent: string;
 try {
-  htmlContent = await Deno.readTextFile(htmlPath);
+  // Use direct path since index.html is in root
+  htmlContent = await Deno.readTextFile("index.html");
   console.log("Successfully loaded index.html");
 } catch (error) {
-  console.error(`FATAL: Could not load index.html at ${htmlPath}`);
+  console.error(`FATAL: Could not load index.html`);
   console.error(`Error details: ${error.message}`);
   htmlContent = `
   <!DOCTYPE html>
@@ -35,10 +32,10 @@ try {
   </head>
   <body>
     <h1>Server Configuration Error</h1>
-    <p>index.html not found at path: <code>${htmlPath}</code></p>
-    <p>Please verify your repository contains a <code>public/index.html</code> file.</p>
+    <p>index.html not found in root directory</p>
+    <p>Please verify your repository contains an <code>index.html</code> file in the main directory.</p>
     <p>Current directory structure:</p>
-    <pre>${await getDirectoryStructure(__dirname)}</pre>
+    <pre>${await getDirectoryStructure()}</pre>
   </body>
   </html>
   `;
@@ -56,10 +53,10 @@ function handleRequest(request: Request): Response {
 }
 
 // Helper to get directory structure
-async function getDirectoryStructure(path: string): Promise<string> {
+async function getDirectoryStructure(): Promise<string> {
   try {
     const entries = [];
-    for await (const entry of Deno.readDir(path)) {
+    for await (const entry of Deno.readDir(".")) {
       entries.push(entry.isDirectory ? `📁 ${entry.name}/` : `📄 ${entry.name}`);
     }
     return entries.sort().join("\n");
@@ -70,5 +67,4 @@ async function getDirectoryStructure(path: string): Promise<string> {
 
 // Start server
 console.log(`Server started at http://localhost:${PORT}`);
-console.log(`Serving from: ${htmlPath}`);
 serve(handleRequest, { port: PORT });
